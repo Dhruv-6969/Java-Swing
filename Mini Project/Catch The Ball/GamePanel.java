@@ -1,7 +1,9 @@
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.GradientPaint;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
@@ -19,19 +21,21 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
     private int paddleWidth;
     private final int paddleHeight;
     private int ballX, ballY;
-    private final int ballSize; // Made ballSize final since it doesn't change
+    private final int ballSize;
     private int ballSpeedX, ballSpeedY;
     private int score = 0;
-    private int lives = 3;
+    private int lives = 1;
     private boolean gameOver = false;
     private final Timer timer;
     private final Random random;
     private boolean leftPressed = false;
     private boolean rightPressed = false;
-    private int paddleSpeed = 8;
-    private int level = 1;
-    private int ballsCaught = 0;
-    private int ballsNeededForLevelUp = 5;
+    private int paddleSpeed = 12; // Increased paddle speed from 8 to 12
+    private int consecutiveHits = 0;
+    
+    // Colors for gradient background
+    private final Color bgColor1 = new Color(25, 25, 112); // Midnight Blue
+    private final Color bgColor2 = new Color(0, 0, 0);     // Black
     
     public GamePanel() {
         random = new Random();
@@ -48,7 +52,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         paddleY = 550;
 
         // Ball Properties
-        ballSize = 20; // Initialize final field
+        ballSize = 20;
         
         // Initialize ball position
         resetBall();
@@ -68,41 +72,63 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         if (width == 0) width = 800; // Default if not yet created
         
         ballX = random.nextInt(width - ballSize);
-        ballY = 0;
+        ballY = 300; // Start in middle of screen
         
-        // Ball Speed
+        // Reset ball speed to initial values
         ballSpeedX = random.nextInt(5) - 2;
-        ballSpeedY = 3 + level;
+        ballSpeedY = 3; // Start with a reasonable speed
+        
+        // Reset consecutive hits
+        consecutiveHits = 0;
     }
 
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
+        Graphics2D g2d = (Graphics2D) g;
+        
+        // Draw gradient background
+        GradientPaint gp = new GradientPaint(
+            0, 0, bgColor1, 
+            0, getHeight(), bgColor2);
+        g2d.setPaint(gp);
+        g2d.fillRect(0, 0, getWidth(), getHeight());
 
         if (!gameOver) {
-            // Draw Paddle
-            g.setColor(Color.BLUE);
-            g.fillRect(paddleX, paddleY, paddleWidth, paddleHeight);
-
-            // Draw Ball
-            g.setColor(Color.RED);
-            g.fillOval(ballX, ballY, ballSize, ballSize);
+            // Draw Paddle with gradient
+            GradientPaint paddleGradient = new GradientPaint(
+                paddleX, paddleY, new Color(30, 144, 255), // Dodger Blue
+                paddleX, paddleY + paddleHeight, new Color(0, 0, 139)); // Dark Blue
+            g2d.setPaint(paddleGradient);
+            g2d.fillRect(paddleX, paddleY, paddleWidth, paddleHeight);
             
-            // Draw Score and Lives
-            g.setColor(Color.WHITE);
-            g.setFont(new Font("Arial", Font.BOLD, 20));
-            g.drawString("Score: " + score, 20, 30);
-            g.drawString("Lives: " + lives, 20, 60);
-            g.drawString("Level: " + level, 20, 90);
-            g.drawString("Next Level: " + ballsCaught + "/" + ballsNeededForLevelUp, 20, 120);
+            // Draw Ball with radial glow
+            Color ballColor = new Color(255, 69, 0); // Red-Orange
+            g2d.setColor(ballColor);
+            g2d.fillOval(ballX, ballY, ballSize, ballSize);
+            
+            // Add subtle glow around ball
+            g2d.setColor(new Color(255, 69, 0, 50)); // Semi-transparent
+            g2d.fillOval(ballX - 5, ballY - 5, ballSize + 10, ballSize + 10);
+            
+            // Draw Score and Current Speed with more stylish text
+            g2d.setColor(Color.WHITE);
+            g2d.setFont(new Font("Arial", Font.BOLD, 20));
+            g2d.drawString("Score: " + score, 20, 30);
+            g2d.drawString("Hits: " + consecutiveHits, 20, 60);
+            g2d.drawString("Ball Speed: " + Math.abs(ballSpeedY), 20, 90);
         } else {
-            // Game Over screen
-            g.setColor(Color.WHITE);
-            g.setFont(new Font("Arial", Font.BOLD, 50));
-            g.drawString("GAME OVER", 250, 250);
-            g.setFont(new Font("Arial", Font.BOLD, 30));
-            g.drawString("Final Score: " + score, 300, 300);
-            g.drawString("Press SPACE to restart", 250, 350);
+            // Game Over screen with better styling
+            g2d.setColor(new Color(255, 0, 0, 150)); // Semi-transparent red
+            g2d.fillRect(200, 200, 400, 250);
+            
+            g2d.setColor(Color.WHITE);
+            g2d.setFont(new Font("Arial", Font.BOLD, 50));
+            g2d.drawString("GAME OVER", 250, 250);
+            g2d.setFont(new Font("Arial", Font.BOLD, 30));
+            g2d.drawString("Final Score: " + score, 300, 300);
+            g2d.drawString("Consecutive Hits: " + consecutiveHits, 250, 340);
+            g2d.drawString("Press SPACE to restart", 250, 380);
         }
     }
 
@@ -139,9 +165,15 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         ballX += ballSpeedX;
         ballY += ballSpeedY;
         
-        // Bounce off walls
+        // Bounce off sides
         if (ballX <= 0 || ballX >= getWidth() - ballSize) {
             ballSpeedX = -ballSpeedX;
+        }
+        
+        // Bounce off top
+        if (ballY <= 0) {
+            ballY = 0;  // Ensure ball doesn't go off-screen
+            ballSpeedY = -ballSpeedY;  // Reverse vertical direction
         }
         
         // If ball goes below screen
@@ -164,7 +196,21 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
             
             // Ball hits paddle
             ballY = paddleY - ballSize;
-            ballSpeedY = -ballSpeedY;
+            
+            // Increase ball speed each time it hits the paddle
+            consecutiveHits++;
+            
+            // Increase the speed by a fixed amount each hit
+            if (ballSpeedY < 0) {
+                ballSpeedY--; // Make it faster going up (more negative)
+            } else {
+                ballSpeedY++; // Make it faster going down (more positive)
+            }
+            
+            // Make sure to flip the direction if coming down
+            if (ballSpeedY > 0) {
+                ballSpeedY = -ballSpeedY; // Make sure ball goes up after hitting paddle
+            }
             
             // Change horizontal direction based on where ball hits paddle
             int paddleCenter = paddleX + paddleWidth / 2;
@@ -174,38 +220,14 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
             // Calculate new X speed based on where ball hits paddle
             ballSpeedX = hitPosition / 10;
             
-            score += 10 * level;
-            ballsCaught++;
-            
-            // Check for level up
-            if (ballsCaught >= ballsNeededForLevelUp) {
-                levelUp();
-            }
+            // Increase score based on how many consecutive hits
+            score += 10 + consecutiveHits;
         }
-    }
-    
-    private void levelUp() {
-        level++;
-        ballsCaught = 0;
-        ballsNeededForLevelUp += 2;
-        
-        // Make paddle narrower as levels increase (but not too narrow)
-        if (paddleWidth > 40) {
-            paddleWidth -= 5;
-        }
-        
-        // Increase paddle speed slightly
-        paddleSpeed++;
     }
     
     private void resetGame() {
         score = 0;
-        lives = 3;
-        level = 1;
-        ballsCaught = 0;
-        ballsNeededForLevelUp = 5;
-        paddleWidth = 100;
-        paddleSpeed = 8;
+        lives = 1;
         gameOver = false;
         resetBall();
     }
