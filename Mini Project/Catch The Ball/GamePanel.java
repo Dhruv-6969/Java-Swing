@@ -67,7 +67,7 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         ballY = 300;
         
         ballSpeedX = random.nextInt(5) - 2;
-        ballSpeedY = 3;
+        ballSpeedY = 5;
         
         consecutiveHits = 0;
     }
