@@ -79,7 +79,6 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
                 scanner.close();
             }
         } catch (FileNotFoundException e) {
-            // File doesn't exist yet, will be created when a high score is saved
         }
     }
     
@@ -100,7 +99,6 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
         ballX = random.nextInt(width - ballSize);
         ballY = 300;
         
-        // Ensure the ball has some horizontal movement
         do {
             ballSpeedX = random.nextInt(7) - 3;
         } while (ballSpeedX == 0);
@@ -219,7 +217,6 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
             ballY = paddleY - ballSize;
             consecutiveHits++;
             
-            // Increase ball speed but cap it at MAX_BALL_SPEED
             if (Math.abs(ballSpeedY) < MAX_BALL_SPEED) {
                 if (ballSpeedY < 0) {
                     ballSpeedY--;
@@ -236,16 +233,12 @@ public class GamePanel extends JPanel implements ActionListener, KeyListener {
             int ballCenter = ballX + ballSize / 2;
             int hitPosition = ballCenter - paddleCenter;
             
-            // Calculate the horizontal speed based on where the ball hit the paddle
             ballSpeedX = hitPosition / 10;
             
-            // Add random variation to prevent perfect vertical bouncing
-            int randomVariation = random.nextInt(3) - 1; // -1, 0, or 1
+            int randomVariation = random.nextInt(3) - 1;
             ballSpeedX += randomVariation;
             
-            // Ensure the ball always has some horizontal movement
             if (ballSpeedX == 0) {
-                // If the ball would bounce straight up, give it a slight horizontal movement
                 ballSpeedX = (random.nextBoolean() ? 1 : -1) * (1 + random.nextInt(2));
             }
             
